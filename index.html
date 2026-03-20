@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Treasure Hunt - Round 2</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --panel: #1a2235;
+            --accent: #00ffcc;
+            --accent-hover: #00cca3;
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+            --danger: #ff4757;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 255, 204, 0.1);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent);
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .track-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .track-btn {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .track-btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid #334155;
+            color: var(--text-main);
+            border-radius: 6px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            background: #334155;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .clue-box {
+            background: var(--bg);
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .error-msg {
+            color: var(--danger);
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background: rgba(0, 255, 204, 0.1);
+            color: var(--accent);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>AI Treasure Hunt</h1>
+
+        <div id="view-tracks" class="view">
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Welcome Hackers. Select your assigned track to
+                begin.</p>
+            <div class="track-grid">
+                <button class="track-btn" onclick="selectTrack('A')">Track A</button>
+                <button class="track-btn" onclick="selectTrack('B')">Track B</button>
+                <button class="track-btn" onclick="selectTrack('C')">Track C</button>
+                <button class="track-btn" onclick="selectTrack('D')">Track D</button>
+            </div>
+        </div>
+
+        <div id="view-unlock" class="view">
+            <div class="badge" id="unlock-badge">Track Setup</div>
+            <h2 style="margin-bottom: 10px; font-size: 1.2rem;" id="unlock-title">Enter Passcode</h2>
+            <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.85rem;" id="unlock-desc">Enter the
+                secret key to unlock this terminal.</p>
+
+            <div class="input-group">
+                <input type="text" id="passcodeInput" placeholder="ENTER CODE" autocomplete="off"
+                    onkeypress="handleEnter(event)">
+            </div>
+            <button class="btn" id="unlockBtn" onclick="verifyPasscode()">UNLOCK</button>
+            <p class="error-msg" id="error-msg">❌ Access Denied. Incorrect Passcode.</p>
+            <button
+                style="margin-top: 20px; background: none; border: none; color: var(--text-dim); cursor: pointer; text-decoration: underline;"
+                onclick="goHome()">Return to Start</button>
+        </div>
+
+        <div id="view-clue" class="view">
+            <div class="badge" id="clue-badge">Target Unlocked</div>
+            <h2 style="margin-bottom: 20px; font-size: 1.3rem; color: var(--accent);">System Breached</h2>
+
+            <div class="clue-box" id="clue-text">
+            </div>
+
+            <button class="btn" onclick="copyClue()">📋 COPY CLUE FOR AI</button>
+            <p style="color: var(--text-dim); margin-top: 15px; font-size: 0.8rem;">Copy the text and prompt your AI to
+                find the next location and passcode!</p>
+        </div>
+    </div>
+
+    <script>
+        let currentTrack = null;
+        let currentClue = null;
+
+        // Check URL Parameters on load
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const trackParam = urlParams.get('track');
+            const clueParam = urlParams.get('clue');
+
+            if (trackParam && clueParam) {
+                currentTrack = trackParam;
+                currentClue = clueParam;
+
+                document.getElementById('unlock-badge').innerText = `Track ${currentTrack} - Clue ${currentClue}`;
+                document.getElementById('unlock-title').innerText = "Enter Passcode";
+                document.getElementById('unlock-desc').innerText = "Ask your AI for the passcode from the previous clue.";
+                showView('view-unlock');
+            } else {
+                showView('view-tracks');
+            }
+        };
+
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('passcodeInput').value = '';
+        }
+
+        function goHome() { window.location.href = window.location.pathname; }
+
+        function selectTrack(track) {
+            window.location.href = `?track=${track}&clue=1`;
+        }
+
+        function handleEnter(e) { if (e.key === 'Enter') verifyPasscode(); }
+
+        // --- API CALL TO PYTHON BACKEND ---
+        async function verifyPasscode() {
+            const input = document.getElementById('passcodeInput').value.trim();
+            const unlockBtn = document.getElementById('unlockBtn');
+            const errorMsg = document.getElementById('error-msg');
+
+            if (!input) return;
+
+            // UI Loading state
+            unlockBtn.disabled = true;
+            unlockBtn.innerText = "VERIFYING...";
+            errorMsg.style.display = 'none';
+
+            try {
+                // Call our Flask Backend
+                const response = await fetch('/.netlify/functions/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        track: currentTrack,
+                        clue: currentClue,
+                        passcode: input
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Correct Passcode!
+                    document.getElementById('clue-badge').innerText = currentClue === 'final'
+                        ? `Track ${currentTrack} - VICTORY`
+                        : `Track ${currentTrack} - Target ${currentClue}`;
+                    document.getElementById('clue-text').innerText = data.text;
+                    showView('view-clue');
+                } else {
+                    // Wrong Passcode
+                    errorMsg.style.display = 'block';
+                    document.getElementById('passcodeInput').value = '';
+                    document.getElementById('passcodeInput').focus();
+                }
+            } catch (error) {
+                errorMsg.innerText = "❌ Server Error. Please try again.";
+                errorMsg.style.display = 'block';
+            } finally {
+                unlockBtn.disabled = false;
+                unlockBtn.innerText = "UNLOCK";
+            }
+        }
+
+        function copyClue() {
+            const textToCopy = document.getElementById('clue-text').innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const btn = document.querySelector('#view-clue .btn');
+                const originalText = btn.innerText;
+                btn.innerText = "✅ COPIED!";
+                btn.style.background = "var(--success)";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "var(--accent)";
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>
